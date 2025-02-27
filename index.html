@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>크롬 공룡 게임</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+            overflow: hidden;
+        }
+        canvas {
+            background-color: white;
+            border: 2px solid black;
+        }
+        #gameOverText {
+            position: absolute;
+            font-size: 48px;
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameOverText">Game Over</div>
+    <canvas id="gameCanvas" width="800" height="300"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const gameOverText = document.getElementById("gameOverText");
+
+        const dinoImg = new Image();
+        dinoImg.src = "dino.png";
+
+        const obstacleImg = new Image();
+        obstacleImg.src = "obstacle.png";
+
+        let dino, obstacles, gameSpeed, score, gameRunning, scoreIncrement, obstacleTimer;
+        
+        function initGame() {
+            dino = { x: 50, y: 250, width: 40, height: 40, dy: 0, gravity: 0.6, jumpPower: -12, onGround: false };
+            obstacles = [];
+            gameSpeed = 5;
+            score = 0;
+            scoreIncrement = 0;
+            obstacleTimer = 0;
+            gameRunning = true;
+            gameOverText.style.display = "none";
+        }
+
+        function generateObstacles() {
+            const pattern = Math.floor(Math.random() * 3);
+            let newObstacles = [];
+            if (pattern === 0) {
+                newObstacles.push({ x: 800, y: 260, width: 30, height: 30 });
+            } else if (pattern === 1) {
+                newObstacles.push({ x: 800, y: 260, width: 30, height: 30 });
+                newObstacles.push({ x: 880, y: 260, width: 30, height: 30 });
+            } else {
+                newObstacles.push({ x: 800, y: 260, width: 30, height: 30 });
+                newObstacles.push({ x: 950, y: 230, width: 30, height: 30 });
+            }
+            obstacles.push(...newObstacles);
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            dino.y += dino.dy;
+            dino.dy += dino.gravity;
+            if (dino.y >= 250) {
+                dino.y = 250;
+                dino.onGround = true;
+                dino.dy = 0;
+            }
+            
+            for (let obs of obstacles) {
+                obs.x -= gameSpeed;
+            }
+            
+            obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+            
+            obstacleTimer += 1 / 60;
+            if (obstacleTimer >= 2) {
+                generateObstacles();
+                obstacleTimer = 0;
+            }
+            
+            for (let obs of obstacles) {
+                if (dino.x < obs.x + obs.width &&
+                    dino.x + dino.width > obs.x &&
+                    dino.y < obs.y + obs.height &&
+                    dino.y + dino.height > obs.y) {
+                    gameRunning = false;
+                    gameOverText.style.display = "block";
+                    return;
+                }
+            }
+            
+            scoreIncrement += 1.67;
+            if (scoreIncrement >= 1) {
+                score += Math.floor(scoreIncrement);
+                scoreIncrement %= 1;
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
+            
+            for (let obs of obstacles) {
+                ctx.drawImage(obstacleImg, obs.x, obs.y, obs.width, obs.height);
+            }
+            
+            ctx.fillStyle = "black";
+            ctx.font = "20px Arial";
+            ctx.fillText("점수: " + score, 10, 20);
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        document.addEventListener("keydown", function (e) {
+            if (e.code === "Space") {
+                if (!gameRunning) {
+                    initGame();
+                }
+                if (dino.onGround) {
+                    dino.dy = dino.jumpPower;
+                    dino.onGround = false;
+                }
+            }
+        });
+        
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
